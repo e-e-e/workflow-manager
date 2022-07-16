@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "workspaces": ["client", "server", "common"],
+  "scripts": {
+    "build": "yarn build:client && yarn build:server",
+    "build:client": "yarn workspace client build",
+    "build:server": "yarn workspace server build",
+    "start": "yarn workspace server start"
+  }
+}

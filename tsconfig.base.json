@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "declaration":true,
+    "declarationMap": true,
+    "isolatedModules": true,
+    "target": "es2016",
+    "jsx": "react",
+    "moduleResolution": "node",
+    "module": "commonjs",
+    "rootDir": ".",
+    "baseUrl": "./",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true
+
+  }
+}
