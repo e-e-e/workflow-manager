@@ -11,6 +11,13 @@ export const RepoInfoDecoder = D.object({
 
 export type RepoInfo = D.Infer<typeof RepoInfoDecoder>;
 
+export const GetRepoResponseDecoder = D.object({
+  data: D.array(RepoInfoDecoder),
+  nextPage: D.optional(D.number),
+})
+
+export type GetRepoResponse = D.Infer<typeof GetRepoResponseDecoder>;
+
 export const WorkflowInfoDecoder = D.object({
   id: D.number,
   path: D.string,

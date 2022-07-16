@@ -2,7 +2,7 @@ import express, { RequestHandler } from 'express';
 import { createOAuthUserAuth } from '@octokit/auth-oauth-user';
 import { oauthAuthorizationUrl } from '@octokit/oauth-authorization-url';
 import { Octokit } from '@octokit/rest';
-import { RepoInfo, WorkflowInfo } from 'common';
+import { GetRepoResponse, RepoInfo, WorkflowInfo } from 'common';
 
 export function createGithubConfigFromEnv(): GitHubConfig {
   if (!process.env.GITHUB_CLIENT_ID)
@@ -80,22 +80,26 @@ export function createApiRouter() {
   });
 
   router.get('/logout', (req, res) => {
-    if(req.session) {
+    if (req.session) {
       req.session.token = null;
     }
     res.redirect('/');
-  })
+  });
 
-  router.get('/repos/:page?', async (req, res, next) => {
+  router.get('/repos', async (req, res, next) => {
     try {
       const token = req.session?.token!;
       const octokit = new Octokit({
         auth: token,
       });
-      const page = req.params.page ? parseInt(req.params.page, 10) : undefined;
+      const page =
+        typeof req.query.page === 'string'
+          ? parseInt(req.query.page, 10)
+          : undefined;
+      const pageSize = 30;
       const data = await octokit.rest.repos.listForAuthenticatedUser({
         page,
-        per_page: 40,
+        per_page: pageSize,
         direction: 'desc',
       });
       res.status(data.status);
@@ -107,7 +111,11 @@ export function createApiRouter() {
         url: repo.url,
         defaultBranch: repo.default_branch,
       }));
-      res.json(repos);
+      const response: GetRepoResponse = {
+        data: repos,
+        nextPage: repos.length >= pageSize ? (page ?? 0) + 1 : undefined,
+      };
+      res.json(response);
     } catch (e) {
       next(e);
     }

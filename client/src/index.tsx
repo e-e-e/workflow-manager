@@ -6,7 +6,12 @@ import React, {
   useState,
 } from 'react';
 import { createRoot } from 'react-dom/client';
-import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useInfiniteQuery,
+  useQuery,
+} from 'react-query';
 import {
   BrowserRouter,
   Routes,
@@ -15,7 +20,7 @@ import {
   useParams,
 } from 'react-router-dom';
 import yaml from 'js-yaml';
-import { RepoInfo, WorkflowInfo } from 'common';
+import { GetRepoResponse, RepoInfo, WorkflowInfo } from 'common';
 
 function useWorkflows(owner: string, repo: string) {
   return useQuery(['repo', owner, repo], async () => {
@@ -308,7 +313,7 @@ const WorkflowYaml = ({
       {data?.inputs && (
         <WorkflowInputs inputs={data.inputs} onChange={setInputs} />
       )}
-      {data && <button onClick={runDispatch}>Run workflow</button> }
+      {data && <button onClick={runDispatch}>Run workflow</button>}
     </div>
   );
 };
@@ -367,14 +372,17 @@ const RepositoryItem = ({ repo }: { repo: RepoInfo }) => {
 };
 
 const Repositories = () => {
-  const { isLoading, error, data, refetch } = useQuery(
-    'repos',
-    async () => {
-      const res = await fetch('/api/v1/repos');
-      return res.json();
-    }
-    // octokit.repos.listForAuthenticatedUser({ per_page: 100, direction: 'desc' })
-  );
+  const { isLoading, error, data, refetch, fetchNextPage, hasNextPage } =
+    useInfiniteQuery<GetRepoResponse>(
+      'repos',
+      async ({ pageParam = 1 }) => {
+        const res = await fetch(`/api/v1/repos?page=${pageParam}`);
+        return (await res.json()) as GetRepoResponse;
+      },
+      {
+        getNextPageParam: (last, all) => last.nextPage,
+      }
+    );
   if (isLoading) return <div>Loading...</div>;
   if (error)
     return (
@@ -383,13 +391,19 @@ const Repositories = () => {
       </div>
     );
   return (
-    <ul>
-      {data?.map((repo: RepoInfo) => (
-        <li key={repo.url}>
-          <RepositoryItem repo={repo} />
-        </li>
-      ))}
-    </ul>
+    <div>
+      <h1>Repositories</h1>
+      <ul>
+        {data?.pages.flatMap((data) =>
+          data.data.map((repo: RepoInfo) => (
+            <li key={repo.url}>
+              <RepositoryItem repo={repo} />
+            </li>
+          ))
+        )}
+      </ul>
+      {hasNextPage && <button onClick={() => fetchNextPage()}>More</button>}
+    </div>
   );
 };
 
