@@ -4,37 +4,51 @@ import { oauthAuthorizationUrl } from '@octokit/oauth-authorization-url';
 import { Octokit } from '@octokit/rest';
 import { RepoInfo, WorkflowInfo } from 'common';
 
-const AUTH_DOMAIN = `${process.env.DOMAIN || 'http://localhost:3000'}`;
-const AUTH_CALLBACK = '/api/github/callback';
+export function createGithubConfigFromEnv(): GitHubConfig {
+  if (!process.env.GITHUB_CLIENT_ID)
+    throw new Error('Requires envvar GITHUB_CLIENT_ID to be set');
+  if (!process.env.GITHUB_CLIENT_SECRET)
+    throw new Error('Requires envvar GITHUB_CLIENT_SECRET to be set');
+  return {
+    clientId: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    callback: '/api/github/callback',
+    domain: process.env.DOMAIN || 'http://localhost:3000',
+  };
+}
 
-const { url } = oauthAuthorizationUrl({
-  clientType: 'oauth-app',
-  clientId: process.env.GITHUB_CLIENT_ID!,
-  redirectUrl: AUTH_DOMAIN + AUTH_CALLBACK,
-  scopes: ['workflow', 'repo'],
-  state: 'secret123',
-});
+export type GitHubConfig = {
+  domain: string;
+  callback: string;
+  clientId: string;
+  clientSecret: string;
+};
 
-export function installGithub() {
+export function installGithub(config: GitHubConfig) {
   const router = express.Router();
 
   router.use('/api/github/login', async (req, res) => {
+    const { url } = oauthAuthorizationUrl({
+      clientType: 'oauth-app',
+      clientId: config.clientId,
+      redirectUrl: config.domain + config.callback,
+      scopes: ['workflow', 'repo'],
+    });
     res.redirect(url);
   });
 
-  router.use(AUTH_CALLBACK, async (req, res, next) => {
+  router.use(config.callback, async (req, res, next) => {
     try {
       const auth = createOAuthUserAuth({
-        clientId: process.env.GITHUB_CLIENT_ID!,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+        clientId: config.clientId,
+        clientSecret: config.clientSecret,
         code: req.query.code as string,
-        state: req.query.state as string,
       });
       const { token } = await auth();
       if (req.session) {
         req.session.token = token;
       }
-      res.redirect('/')
+      res.redirect('/');
     } catch (e) {
       return next(e);
     }
@@ -64,6 +78,13 @@ export function createApiRouter() {
       next(e);
     }
   });
+
+  router.get('/logout', (req, res) => {
+    if(req.session) {
+      req.session.token = null;
+    }
+    res.redirect('/');
+  })
 
   router.get('/repos/:page?', async (req, res, next) => {
     try {
