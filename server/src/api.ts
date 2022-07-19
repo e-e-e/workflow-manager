@@ -2,7 +2,7 @@ import express, { RequestHandler } from 'express';
 import { createOAuthUserAuth } from '@octokit/auth-oauth-user';
 import { oauthAuthorizationUrl } from '@octokit/oauth-authorization-url';
 import { Octokit } from '@octokit/rest';
-import { GetRepoResponse, RepoInfo, WorkflowInfo } from 'common';
+import { GetRepoResponse, RepoInfo, WorkflowInfo, WorkflowRun } from "common";
 
 export function createGithubConfigFromEnv(): GitHubConfig {
   if (!process.env.GITHUB_CLIENT_ID)
@@ -193,6 +193,39 @@ export function createApiRouter() {
       });
       res.status(result.status);
       res.json({});
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.get('/:owner/:repo/workflow/:id/runs', async (req, res, next) => {
+    try {
+      const token = req.session?.token!;
+      const { repo, owner, id } = req.params;
+      const octokit = new Octokit({
+        auth: token,
+      });
+      const result = await octokit.rest.actions.listWorkflowRuns({
+        repo,
+        owner,
+        workflow_id: id,
+        per_page: 5,
+        // TODO: only get recent jobs
+        exclude_pull_requests: true,
+      });
+      res.status(result.status);
+      const data: WorkflowRun[] = result.data.workflow_runs.map(run => ({
+        id: run.id,
+        status: run.status ?? undefined,
+        conclusion: run.conclusion ?? undefined,
+        logsUrl: run.html_url,
+        actorName: run.actor?.login ?? undefined,
+        startedAt: run.run_started_at,
+        createdAt: run.created_at,
+        updatedAt: run.updated_at,
+        number: run.run_number,
+      }))
+      res.json(data);
     } catch (e) {
       next(e);
     }
