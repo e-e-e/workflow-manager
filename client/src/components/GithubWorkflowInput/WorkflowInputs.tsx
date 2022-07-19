@@ -34,6 +34,7 @@ type InputElementProps = {
 };
 
 function WorkflowInputEnvironment(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   props: GithubWorkflowInputEnvironment & InputElementProps
 ) {
   return null;

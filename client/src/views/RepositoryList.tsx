@@ -1,7 +1,7 @@
-import React from "react";
-import { useInfiniteQuery } from "react-query";
-import { GetRepoResponse, RepoInfo } from "common";
-import { Link } from "react-router-dom";
+import React from 'react';
+import { useInfiniteQuery } from 'react-query';
+import { GetRepoResponse, RepoInfo } from 'common';
+import { Link } from 'react-router-dom';
 
 const RepositoryItem = ({ repo }: { repo: RepoInfo }) => {
   return (
@@ -23,7 +23,7 @@ export const RepositoryList = () => {
         return (await res.json()) as GetRepoResponse;
       },
       {
-        getNextPageParam: (last, all) => last.nextPage,
+        getNextPageParam: (last) => last.nextPage,
       }
     );
   if (isLoading) return <div>Loading...</div>;

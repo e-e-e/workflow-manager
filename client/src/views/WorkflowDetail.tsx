@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useQuery } from 'react-query';
 import yaml from 'js-yaml';
 import {
@@ -11,7 +11,7 @@ async function executeWorkflow(
   owner: string,
   repo: string,
   id: number,
-  options?: { ref?: string; inputs: Record<string, any> }
+  options?: { ref?: string; inputs: Record<string, unknown> }
 ) {
   await fetch(`/api/v1/${owner}/${repo}/workflow/${id}/dispatch`, {
     method: 'POST',
@@ -40,6 +40,14 @@ function useWorkflowRuns(
   );
 }
 
+type WorkflowConfig = {
+  on?: { workflow_dispatch?: { inputs?: Record<string, GithubWorkflowInput> } };
+};
+
+function isWorkflowConfigWithWorkflowDispatch(d: unknown): d is WorkflowConfig {
+  return !(typeof d !== 'object' || d == null);
+}
+
 function useWorkflowYaml(owner: string, repo: string, url?: string) {
   return useQuery(
     ['wf-yml', owner, repo, url],
@@ -49,12 +57,12 @@ function useWorkflowYaml(owner: string, repo: string, url?: string) {
       if (!content) {
         return null;
       }
-      const workflow: any = yaml.load(atob(content));
-      if (workflow?.on?.workflow_dispatch) {
-        // do this properly
-        return workflow.on.workflow_dispatch as {
-          inputs?: Record<string, GithubWorkflowInput>;
-        };
+      const workflow: unknown = yaml.load(atob(content));
+      if (
+        isWorkflowConfigWithWorkflowDispatch(workflow) &&
+        workflow?.on?.workflow_dispatch
+      ) {
+        return workflow.on.workflow_dispatch;
       }
       return null;
     },
@@ -62,12 +70,12 @@ function useWorkflowYaml(owner: string, repo: string, url?: string) {
   );
 }
 
-const WorkflowRun = React.memo((props: WorkflowRun) => {
+const WorkflowRun = React.memo(function WorkflowRunFn(props: WorkflowRun) {
   return (
     <li>
       <strong>Run #{props.number}:</strong> status: {props.status} / result:
       {props.conclusion} [
-      <a href={props.logsUrl} target="_blank">
+      <a href={props.logsUrl} target="_blank" rel="noreferrer">
         link
       </a>
       ]<br />
@@ -109,7 +117,10 @@ const WorkflowRuns = ({
     if (data.some((d) => !d.conclusion)) {
       console.log('effect - run polling');
       setIsPolling(true);
-    } else if (isPolling && (Date.now() - (timeSinceAction.current || 0) > 5000)) {
+    } else if (
+      isPolling &&
+      Date.now() - (timeSinceAction.current || 0) > 5000
+    ) {
       setIsPolling(false);
     }
   }, [data, isFetching, isLoading, timeSinceAction, isPolling]);
@@ -171,19 +182,17 @@ export const WorkflowDetails = ({
         Opps <button onClick={() => refetch()}> try again</button>.
       </div>
     );
-  return (
-    data && (
-      <div>
-        {data.inputs && (
-          <WorkflowInputs inputs={data.inputs} onChange={setInputs} />
-        )}
-        <WorkflowRuns
-          owner={owner}
-          repo={repo}
-          workflowId={workflowId}
-          runAction={runDispatch}
-        />
-      </div>
-    )
-  );
+  return data ? (
+    <div>
+      {data.inputs && (
+        <WorkflowInputs inputs={data.inputs} onChange={setInputs} />
+      )}
+      <WorkflowRuns
+        owner={owner}
+        repo={repo}
+        workflowId={workflowId}
+        runAction={runDispatch}
+      />
+    </div>
+  ) : null;
 };

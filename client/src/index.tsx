@@ -1,15 +1,7 @@
-import React  from 'react';
+import React from 'react';
 import { createRoot } from 'react-dom/client';
-import {
-  QueryClient,
-  QueryClientProvider,
-  useQuery,
-} from 'react-query';
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-} from 'react-router-dom';
+import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { RepositoryList } from './views/RepositoryList';
 import { Login } from './views/Login';
 import { Repository } from './views/Repository';

@@ -2,7 +2,7 @@ import express, { RequestHandler } from 'express';
 import { createOAuthUserAuth } from '@octokit/auth-oauth-user';
 import { oauthAuthorizationUrl } from '@octokit/oauth-authorization-url';
 import { Octokit } from '@octokit/rest';
-import { GetRepoResponse, RepoInfo, WorkflowInfo, WorkflowRun } from "common";
+import { GetRepoResponse, RepoInfo, WorkflowInfo, WorkflowRun } from 'common';
 
 export function createGithubConfigFromEnv(): GitHubConfig {
   if (!process.env.GITHUB_CLIENT_ID)
@@ -214,7 +214,7 @@ export function createApiRouter() {
         exclude_pull_requests: true,
       });
       res.status(result.status);
-      const data: WorkflowRun[] = result.data.workflow_runs.map(run => ({
+      const data: WorkflowRun[] = result.data.workflow_runs.map((run) => ({
         id: run.id,
         status: run.status ?? undefined,
         conclusion: run.conclusion ?? undefined,
@@ -224,7 +224,7 @@ export function createApiRouter() {
         createdAt: run.created_at,
         updatedAt: run.updated_at,
         number: run.run_number,
-      }))
+      }));
       res.json(data);
     } catch (e) {
       next(e);

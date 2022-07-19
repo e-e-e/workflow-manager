@@ -3,6 +3,7 @@ import React from 'react';
 import { WorkflowDetails } from './WorkflowDetail';
 import { useQuery } from 'react-query';
 import { WorkflowInfo } from 'common';
+import { assertExistence } from '../base/assertions';
 
 function useWorkflows(owner: string, repo: string) {
   return useQuery(['repo', owner, repo], async () => {
@@ -13,7 +14,9 @@ function useWorkflows(owner: string, repo: string) {
 
 export const Repository = () => {
   const { repo, owner } = useParams<{ owner: string; repo: string }>();
-  const { isLoading, error, data, refetch } = useWorkflows(owner!, repo!);
+  assertExistence(owner);
+  assertExistence(repo);
+  const { isLoading, error, data, refetch } = useWorkflows(owner, repo);
   if (isLoading) return <div>Loading...</div>;
   if (error)
     return (
@@ -30,8 +33,8 @@ export const Repository = () => {
         <div key={workflow.id}>
           <h3>{workflow.name}</h3>
           <WorkflowDetails
-            repo={repo!}
-            owner={owner!}
+            repo={repo}
+            owner={owner}
             path={workflow.path}
             workflowId={workflow.id}
           />
